@@ -19,5 +19,5 @@ jobs:
       - name: 🔔 Notify Review
         uses: ./
         with:
-          channel-id: 'guides'
+          channel-id: 'sandbox'
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

@@ -20,3 +20,4 @@ jobs:
         uses: ./
         with:
           channel-id: 'guides'
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

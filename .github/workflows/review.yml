@@ -1,6 +1,5 @@
 name: Review Request Test
 on:
-  push:
   pull_request:
     types: [review_requested]
     branches:

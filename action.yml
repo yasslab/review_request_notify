@@ -1,0 +1,58 @@
+name: 'Slack Review Request Notify'
+description: 'Send actions notification to Idobata'
+inputs:
+  channel-id:  # channel of input
+    description: 'Slack Channel ID to post message'
+    required: true
+    default: ''
+runs:
+  using: "composite"
+  steps:
+    - name: 👤 Fix different username between GitHub <-> Slack
+      run: |
+        requestor=${{ github.triggering_actor }}
+        requestee=${{ github.event.requested_reviewer.login }}
+
+        echo "REQUESTOR=$requestor"          | \
+          sed -e "s/rakuda-san-desu/rakuda/" | \
+          sed -e "s/Yuppymam/yuppy/" >> $GITHUB_ENV
+        echo "REQUESTEE=$requestee"          | \
+          sed -e "s/rakuda-san-desu/rakuda/" | \
+          sed -e "s/Yuppymam/yuppy/" >> $GITHUB_ENV
+
+    - name: ⏰ Set timezone and check if business days
+      env:
+        TZ: 'Asia/Tokyo' # タイムゾーン指定
+      run: |
+        # 営業時間内（平日の10時〜18時）であれば即日通知
+        # 月曜 = 1、金曜 = 5
+        echo "CURRENT_TIME=$(date +'%H')" >> $GITHUB_ENV
+        echo "CURRENT_WEEK=$(date +'%w')" >> $GITHUB_ENV
+        if [ "$CURRENT_TIME" -ge "10" ] && [ "$CURRENT_TIME" -le "18" ] && \
+           [ "$CURRENT_WEEK" -ge "1"  ] && [ "$CURRENT_WEEK" -le "5"  ] ; then
+           echo "IS_BUSINESS_TIME=true"  >> $GITHUB_ENV
+        else
+           echo "IS_BUSINESS_TIME=false" >> $GITHUB_ENV
+        fi
+
+    - name: 📝 Compose prefix message to mention in Slack
+      run: |
+        # 営業時間内なら即時通知、時間外なら翌営業日に通知
+        if [ "${{ env.IS_BUSINESS_TIME }}" = "true" ]; then
+          mention="<@${{ env.REQUESTEE }}>"
+        else
+          mention="<@tasslab> memo ${{ env.REQUESTEE }}"
+        fi
+        echo "SLACK_POST_MENTION=$mention" >> $GITHUB_ENV
+
+    - name: 🔔 Review Request Notify
+      uses: slackapi/slack-github-action@v1.23.0
+      # cf. https://github.com/slackapi/slack-github-action
+      id: slack
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      with:
+        channel-id: 'review'
+        slack-message: |
+          ${{ env.SLACK_POST_MENTION }} :${{ env.REQUESTOR }}: ${{ env.REQUESTOR }} さんからレビュー依頼が来てるよ (◍˃̶ᗜ˂̶◍)ﾉ
+          > :github: <${{ github.event.pull_request.html_url || github.event.head_commit.url }}|`${{ github.repository }}#${{ github.event.number }}`> - *<${{ github.event.pull_request.html_url || github.event.head_commit.url }}|${{ github.event.pull_request.title }}>*

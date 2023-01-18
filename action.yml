@@ -13,6 +13,7 @@ runs:
   using: "composite"
   steps:
     - name: 👤 Fix different username between GitHub <-> Slack
+      shell: bash
       run: |
         requestor=${{ github.triggering_actor }}
         requestee=${{ github.event.requested_reviewer.login }}
@@ -23,11 +24,11 @@ runs:
         echo "REQUESTEE=$requestee"          | \
           sed -e "s/rakuda-san-desu/rakuda/" | \
           sed -e "s/Yuppymam/yuppy/" >> $GITHUB_ENV
-      shell: bash
 
     - name: ⏰ Set timezone and check if business days
       env:
         TZ: 'Asia/Tokyo' # タイムゾーン指定
+      shell: bash
       run: |
         # 営業時間内（平日の10時〜18時）であれば即日通知
         # 月曜 = 1、金曜 = 5
@@ -39,9 +40,9 @@ runs:
         else
            echo "IS_BUSINESS_TIME=false" >> $GITHUB_ENV
         fi
-      shell: bash
 
     - name: 📝 Compose prefix message to mention in Slack
+      shell: bash
       run: |
         # 営業時間内なら即時通知、時間外なら翌営業日に通知
         if [ "${{ env.IS_BUSINESS_TIME }}" = "true" ]; then
@@ -50,7 +51,6 @@ runs:
           mention="<@tasslab> memo ${{ env.REQUESTEE }}"
         fi
         echo "SLACK_POST_MENTION=$mention" >> $GITHUB_ENV
-      shell: bash
 
     - name: 🔔 Review Request Notify
       uses: slackapi/slack-github-action@v1.23.0

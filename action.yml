@@ -5,6 +5,10 @@ inputs:
     description: 'Slack Channel ID to post message'
     required: true
     default: ''
+  SLACK_BOT_TOKEN:  # channel of input
+    description: 'Slack token to post message'
+    required: true
+    default: ''
 runs:
   using: "composite"
   steps:
@@ -50,7 +54,7 @@ runs:
       # cf. https://github.com/slackapi/slack-github-action
       id: slack
       env:
-        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        SLACK_BOT_TOKEN: ${{ inputs.SLACK_BOT_TOKEN }}
       with:
         channel-id: ${{ inputs.channel-id }}
         slack-message: |

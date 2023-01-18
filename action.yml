@@ -23,6 +23,7 @@ runs:
         echo "REQUESTEE=$requestee"          | \
           sed -e "s/rakuda-san-desu/rakuda/" | \
           sed -e "s/Yuppymam/yuppy/" >> $GITHUB_ENV
+      shell: bash
 
     - name: ⏰ Set timezone and check if business days
       env:
@@ -38,6 +39,7 @@ runs:
         else
            echo "IS_BUSINESS_TIME=false" >> $GITHUB_ENV
         fi
+      shell: bash
 
     - name: 📝 Compose prefix message to mention in Slack
       run: |
@@ -48,6 +50,7 @@ runs:
           mention="<@tasslab> memo ${{ env.REQUESTEE }}"
         fi
         echo "SLACK_POST_MENTION=$mention" >> $GITHUB_ENV
+      shell: bash
 
     - name: 🔔 Review Request Notify
       uses: slackapi/slack-github-action@v1.23.0

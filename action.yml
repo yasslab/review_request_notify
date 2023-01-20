@@ -32,10 +32,10 @@ runs:
       run: |
         # 営業時間内（平日の10時〜18時）であれば即日通知
         # 月曜 = 1、金曜 = 5
-        echo "CURRENT_TIME=$(date +'%H')" >> $GITHUB_ENV
-        echo "CURRENT_WEEK=$(date +'%w')" >> $GITHUB_ENV
-        if [ "$CURRENT_TIME" -ge "10" ] && [ "$CURRENT_TIME" -le "18" ] && \
-           [ "$CURRENT_WEEK" -ge "1"  ] && [ "$CURRENT_WEEK" -le "5"  ] ; then
+        current_time=$(date +'%H'); echo "CURRENT_TIME: $current_time"
+        current_week=$(date +'%w'); echo "CURRENT_TIME: $current_week"
+        if [ "$current_time" -ge "10" ] && [ "$current_time" -le "18" ] && \
+           [ "$current_week" -ge "1"  ] && [ "$current_week" -le "5"  ] ; then
            echo "IS_BUSINESS_TIME=true"  >> $GITHUB_ENV
         else
            echo "IS_BUSINESS_TIME=false" >> $GITHUB_ENV

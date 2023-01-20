@@ -34,7 +34,7 @@ runs:
         # 月曜 = 1、金曜 = 5
         current_time=$(date +'%H'); echo "CURRENT_TIME: $current_time"
         current_week=$(date +'%w'); echo "CURRENT_TIME: $current_week"
-        if [ "$current_time" -ge "10" ] && [ "$current_time" -le "18" ] && \
+        if [ "$current_time" -ge "10" ] && [ "$current_time" -lt "18" ] && \
            [ "$current_week" -ge "1"  ] && [ "$current_week" -le "5"  ] ; then
            echo "IS_BUSINESS_TIME=true"  >> $GITHUB_ENV
         else

@@ -20,10 +20,12 @@ runs:
 
         echo "REQUESTOR=$requestor"          | \
           sed -e "s/rakuda-san-desu/rakuda/" | \
-          sed -e "s/Yuppymam/yuppy/" >> $GITHUB_ENV
+          sed -e "s/Yuppymam/yuppy/"         | \
+          sed -e "s/dependabot\[bot\]/dependabot/" >> $GITHUB_ENV
         echo "REQUESTEE=$requestee"          | \
           sed -e "s/rakuda-san-desu/rakuda/" | \
-          sed -e "s/Yuppymam/yuppy/" >> $GITHUB_ENV
+          sed -e "s/Yuppymam/yuppy/"         | \
+          sed -e "s/dependabot\[bot\]/dependabot/" >> $GITHUB_ENV
 
     - name: ⏰ Set timezone and check if business days
       env:

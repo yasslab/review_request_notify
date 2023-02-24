@@ -37,7 +37,7 @@ runs:
         current_week=$(date +'%w'); echo "CURRENT_TIME: $current_week"
         is_holiday=$(
           ruby -r open-uri -e 'holidays = URI.open("https://yasslab.jp/holidays.json").read' \
-               -r json -r date -e "puts JSON.parse(holidays).to_a.include? (Date.today - 1).to_s"
+               -r json -r date -e "puts JSON.parse(holidays).to_a.include? Date.today.to_s"
         )
 
         # 祝日であれば業務時間外

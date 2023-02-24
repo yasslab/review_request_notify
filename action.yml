@@ -33,13 +33,11 @@ runs:
       shell: bash
       run: |
         # 祝日ではなく、営業時間内（平日の10時〜18時）であれば即日通知
-        current_date=$(date +'%Y-%m-%d'); echo "CURRENT_DATE: $current_date"
-        current_time=$(date +'%H');       echo "CURRENT_TIME: $current_time"
-        current_week=$(date +'%w');       echo "CURRENT_TIME: $current_week"
-
+        current_time=$(date +'%H'); echo "CURRENT_TIME: $current_time"
+        current_week=$(date +'%w'); echo "CURRENT_TIME: $current_week"
         is_holiday=$(
-          curl -sL yasslab.jp/holidays.json |
-          ruby -r json -ne 'puts JSON.parse($_).to_a.include? "$current_date"'
+          ruby -r open-uri -e 'holidays = URI.open("https://yasslab.jp/holidays.json").read' \
+               -r json -r date -e "puts JSON.parse(holidays).to_a.include? Date.today.to_s"
         )
 
         # 祝日であれば業務時間外

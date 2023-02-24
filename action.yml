@@ -32,14 +32,28 @@ runs:
         TZ: 'Asia/Tokyo' # タイムゾーン指定
       shell: bash
       run: |
-        # 営業時間内（平日の10時〜18時）であれば即日通知
-        # 月曜 = 1、金曜 = 5
+        # 祝日ではなく、営業時間内（平日の10時〜18時）であれば即日通知
         current_time=$(date +'%H'); echo "CURRENT_TIME: $current_time"
         current_week=$(date +'%w'); echo "CURRENT_TIME: $current_week"
-        if [ "$current_time" -ge "10" ] && [ "$current_time" -lt "18" ] && \
-           [ "$current_week" -ge "1"  ] && [ "$current_week" -le "5"  ] ; then
+        is_holiday=$(
+          ruby -r open-uri -e 'holidays = URI.open("https://yasslab.jp/holidays.json").read' \
+               -r json -r date -e "puts JSON.parse(holidays).to_a.include? Date.today.to_s"
+        )
+
+        # 祝日であれば業務時間外
+        if [[ "$is_holiday" == "true"  ]] ; then
+           echo "Current status: Japanese holidays"
+           echo "IS_BUSINESS_TIME=false" >> $GITHUB_ENV
+
+        # 平日の業務時間内かどうかの判定（月曜 = 1、金曜 = 5）
+        elif [ "$current_time" -ge "10" ] && [ "$current_time" -lt "18" ] && \
+             [ "$current_week" -ge "1"  ] && [ "$current_week" -le "5"  ] ; then
+           echo "Current status: Business hours"
            echo "IS_BUSINESS_TIME=true"  >> $GITHUB_ENV
+
+        # 上記以外であれば業務時間外（早朝/深夜など）
         else
+           echo "Current status: Not business hours"
            echo "IS_BUSINESS_TIME=false" >> $GITHUB_ENV
         fi
 

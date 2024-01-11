@@ -68,6 +68,8 @@ runs:
           mention="<@tasslab> memo ${{ env.REQUESTEE }}"
         fi
         echo "SLACK_POST_MENTION=$mention" >> $GITHUB_ENV
+        echo "ACTIONS_URL=https://github.com/${{ github.repository }}/actions" >> $GITHUB_ENV
+        # The ACTIONS_URL can be reffered when triggered by workflow dispatch.
 
     - name: 🔔 Review Request Notify
       uses: slackapi/slack-github-action@v1.23.0
@@ -79,4 +81,4 @@ runs:
         channel-id: ${{ inputs.channel-id }}
         slack-message: |
           ${{ env.SLACK_POST_MENTION }} :${{ env.REQUESTOR }}: ${{ env.REQUESTOR }} さんからレビュー依頼が来てるよ (◍˃̶ᗜ˂̶◍)ﾉ
-          > :github: <${{ github.event.pull_request.html_url || github.event.head_commit.url }}|`${{ github.repository }}#${{ github.event.number }}`> - *<${{ github.event.pull_request.html_url || github.event.head_commit.url }}|${{ github.event.pull_request.title }}>*
+          > :github: <${{ github.event.pull_request.html_url || github.event.head_commit.url || env.ACTIONS_URL }}|`${{ github.repository }}#${{ github.event.number || 'workflow_dispatch' }}`> - *<${{ github.event.pull_request.html_url || github.event.head_commit.url || env.ACTIONS_URL }}|${{ github.event.pull_request.title || 'workflow_dispatch' }}>*

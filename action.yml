@@ -16,7 +16,8 @@ runs:
       shell: bash
       run: |
         requestor=${{ github.triggering_actor }}
-        requestee=${{ github.event.requested_reviewer.login }}
+        requestee=${{ github.event.requested_reviewer.login || 'yasulab' }}
+        # MEMO: 'requestee' can be null when triggered by workflow dispatch.
 
         echo "REQUESTOR=$requestor"          | \
           sed -e "s/rakuda-san-desu/rakuda/" | \

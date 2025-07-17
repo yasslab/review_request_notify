@@ -1,6 +1,6 @@
 # Review Request Notify
 
-GitHub ActionsでPRレビュー依頼をSlackに通知
+YassLab 社内で利用する PR レビュー依頼の Slack 通知 in GitHub Actions.
 
 ## 使い方
 
@@ -13,8 +13,8 @@ GitHub ActionsでPRレビュー依頼をSlackに通知
 
 ## 機能
 
-- GitHubユーザー名 → Slackユーザー名の自動変換（[members.json](https://yasslab.jp/members.json)）
-- 営業時間外は@tasslabへメモとして通知
+- GitHubユーザー名 → Slackユーザー名の自動変換
+- 営業時間外は @tasslab へメモとして通知 (営業時間になったら通知する)
 - 日本の祝日対応
 
 ## テスト

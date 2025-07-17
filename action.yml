@@ -19,16 +19,42 @@ runs:
         requestee=${{ github.event.requested_reviewer.login || 'yasulab' }}
         # MEMO: 'requestee' can be null when triggered by workflow dispatch.
 
-        echo "REQUESTOR=$requestor"          | \
-          sed -e "s/rakuda-san-desu/rakuda/" | \
-          sed -e "s/Yuppymam/yuppy/"         | \
-          sed -e "s/nacchan99/nacchan/"      | \
-          sed -e "s/dependabot\[bot\]/dependabot/" >> $GITHUB_ENV
-        echo "REQUESTEE=$requestee"          | \
-          sed -e "s/rakuda-san-desu/rakuda/" | \
-          sed -e "s/Yuppymam/yuppy/"         | \
-          sed -e "s/nacchan99/nacchan/"      | \
-          sed -e "s/dependabot\[bot\]/dependabot/" >> $GITHUB_ENV
+        # Fetch username mapping from members.json API
+        members_json=$(curl -s https://yasslab.jp/members.json || echo "[]")
+        
+        # Function to map GitHub username to Slack username
+        map_username() {
+          local github_username=$1
+          local slack_username=""
+          
+          # Special handling for bots
+          if [[ "$github_username" == "dependabot[bot]" ]]; then
+            echo "dependabot"
+            return
+          fi
+          
+          # Try to find mapping in members.json
+          slack_username=$(echo "$members_json" | ruby -r json -e "
+            members = JSON.parse(STDIN.read)
+            member = members.find { |m| m['username_github'] == '$github_username' }
+            puts member['username_slack'] if member
+          ")
+          
+          # If mapping found, use it; otherwise use GitHub username as fallback
+          if [[ -n "$slack_username" ]]; then
+            echo "$slack_username"
+          else
+            echo "$github_username"
+          fi
+        }
+        
+        # Map usernames
+        REQUESTOR=$(map_username "$requestor")
+        REQUESTEE=$(map_username "$requestee")
+        
+        # Export to environment
+        echo "REQUESTOR=$REQUESTOR" >> $GITHUB_ENV
+        echo "REQUESTEE=$REQUESTEE" >> $GITHUB_ENV
 
     - name: ⏰ Set timezone and check if business days
       env:

@@ -21,25 +21,25 @@ runs:
 
         # Fetch username mapping from members.json API
         members_json=$(curl -s https://yasslab.jp/members.json || echo "[]")
-        
+
         # Function to map GitHub username to Slack username
         map_username() {
           local github_username=$1
           local slack_username=""
-          
+
           # Special handling for bots
           if [[ "$github_username" == "dependabot[bot]" ]]; then
             echo "dependabot"
             return
           fi
-          
+
           # Try to find mapping in members.json
           slack_username=$(echo "$members_json" | ruby -r json -e "
             members = JSON.parse(STDIN.read)
             member = members.find { |m| m['username_github'] == '$github_username' }
             puts member['username_slack'] if member
           ")
-          
+
           # If mapping found, use it; otherwise use GitHub username as fallback
           if [[ -n "$slack_username" ]]; then
             echo "$slack_username"
@@ -47,11 +47,11 @@ runs:
             echo "$github_username"
           fi
         }
-        
+
         # Map usernames
         REQUESTOR=$(map_username "$requestor")
         REQUESTEE=$(map_username "$requestee")
-        
+
         # Export to environment
         echo "REQUESTOR=$REQUESTOR" >> $GITHUB_ENV
         echo "REQUESTEE=$REQUESTEE" >> $GITHUB_ENV
@@ -100,13 +100,18 @@ runs:
         # The ACTIONS_URL can be reffered when triggered by workflow dispatch.
 
     - name: 🔔 Review Request Notify
-      uses: slackapi/slack-github-action@v1.23.0
+      uses: slackapi/slack-github-action@v4.0.0
       # cf. https://github.com/slackapi/slack-github-action
       id: slack
-      env:
-        SLACK_BOT_TOKEN: ${{ inputs.SLACK_BOT_TOKEN }}
       with:
-        channel-id: ${{ inputs.channel-id }}
-        slack-message: |
-          ${{ env.SLACK_POST_MENTION }} :${{ env.REQUESTOR }}: ${{ env.REQUESTOR }} さんからレビュー依頼が来てるよ (◍˃̶ᗜ˂̶◍)ﾉ
-          > :github: <${{ github.event.pull_request.html_url || github.event.head_commit.url || env.ACTIONS_URL }}|`${{ github.repository }}#${{ github.event.number || 'workflow_dispatch' }}`> - *<${{ github.event.pull_request.html_url || github.event.head_commit.url || env.ACTIONS_URL }}|${{ github.event.pull_request.title || 'workflow_dispatch' }}>*
+        method: chat.postMessage
+        token: ${{ inputs.SLACK_BOT_TOKEN }}
+        # payload は YAML として解析される。本文は入れ子のブロックスカラーに入れること。
+        # こうすると行頭の > ・:emoji: ・バッククォート・<url|label> のいずれも
+        # YAML の特殊文字にならない（ブロック内で意味を持つのは改行とインデントだけ）。
+        # ダブルクォート 1 本で囲む書き方は、PR タイトルに " や \ が入ると壊れる。
+        payload: |
+          channel: ${{ inputs.channel-id }}
+          text: |
+            ${{ env.SLACK_POST_MENTION }} :${{ env.REQUESTOR }}: ${{ env.REQUESTOR }} さんからレビュー依頼が来てるよ (◍˃̶ᗜ˂̶◍)ﾉ
+            > :github: <${{ github.event.pull_request.html_url || github.event.head_commit.url || env.ACTIONS_URL }}|`${{ github.repository }}#${{ github.event.number || 'workflow_dispatch' }}`> - *<${{ github.event.pull_request.html_url || github.event.head_commit.url || env.ACTIONS_URL }}|${{ github.event.pull_request.title || 'workflow_dispatch' }}>*

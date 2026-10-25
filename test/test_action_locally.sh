@@ -16,20 +16,21 @@ members_json=$(curl -s https://yasslab.jp/members.json || echo "[]")
 map_username() {
   local github_username=$1
   local slack_username=""
-  
+
   # Special handling for bots
   if [[ "$github_username" == "dependabot[bot]" ]]; then
     echo "dependabot"
     return
   fi
-  
+
   # Try to find mapping in members.json
-  slack_username=$(echo "$members_json" | ruby -r json -e "
+  # ユーザー名は Ruby のコードに埋め込まず、引数で渡す（action.yml と同じ）
+  slack_username=$(echo "$members_json" | ruby -r json -e '
     members = JSON.parse(STDIN.read)
-    member = members.find { |m| m['username_github'] == '$github_username' }
-    puts member['username_slack'] if member
-  ")
-  
+    member = members.find { |m| m["username_github"] == ARGV[0] }
+    puts member["username_slack"] if member
+  ' "$github_username")
+
   # If mapping found, use it; otherwise use GitHub username as fallback
   if [[ -n "$slack_username" ]]; then
     echo "$slack_username"

@@ -109,13 +109,10 @@ runs:
         # <!channel> や <@ID> をメンションとして解釈するので、& < > を Slack の決まりどおりに
         # 置き換えて、ただの文字として出す（https://docs.slack.dev/messaging/formatting-message-text/）
         # （bash 5.2 からは ${var//pat/rep} の rep の & が「一致した文字」になるので、sed で置き換える）
-        title=$(printf '%s' "$PR_TITLE" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
-        # 改行が混ざっても $GITHUB_ENV の行が壊れないよう、区切り文字の形で書く
-        {
-          echo "SLACK_PR_TITLE<<SLACK_PR_TITLE_EOF"
-          echo "$title"
-          echo "SLACK_PR_TITLE_EOF"
-        } >> $GITHUB_ENV
+        # 改行は空白にして 1 行で書く（改行が残ると $GITHUB_ENV に別の変数を書き込めて、
+        # payload の text: | のインデントも崩れる）
+        title=$(printf '%s' "$PR_TITLE" | tr '\r\n' '  ' | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
+        echo "SLACK_PR_TITLE=$title" >> $GITHUB_ENV
 
     - name: 🔔 Review Request Notify
       # Slack のトークンを渡す第三者の action なので、tag ではなく SHA で固定する（tag は後から付け替えられる）

@@ -14,10 +14,12 @@ runs:
   steps:
     - name: 👤 Fix different username between GitHub <-> Slack
       shell: bash
-      run: |
-        requestor=${{ github.triggering_actor }}
-        requestee=${{ github.event.requested_reviewer.login || 'yasulab' }}
+      # ${{ }} を run: に直接埋め込まず、env: 経由で渡す（コマンドの注入を避ける）
+      env:
+        requestor: ${{ github.triggering_actor }}
+        requestee: ${{ github.event.requested_reviewer.login || 'yasulab' }}
         # MEMO: 'requestee' can be null when triggered by workflow dispatch.
+      run: |
 
         # Fetch username mapping from members.json API
         members_json=$(curl -s https://yasslab.jp/members.json || echo "[]")
@@ -34,11 +36,12 @@ runs:
           fi
 
           # Try to find mapping in members.json
-          slack_username=$(echo "$members_json" | ruby -r json -e "
+          # ユーザー名は Ruby のコードに埋め込まず、引数で渡す
+          slack_username=$(echo "$members_json" | ruby -r json -e '
             members = JSON.parse(STDIN.read)
-            member = members.find { |m| m['username_github'] == '$github_username' }
-            puts member['username_slack'] if member
-          ")
+            member = members.find { |m| m["username_github"] == ARGV[0] }
+            puts member["username_slack"] if member
+          ' "$github_username")
 
           # If mapping found, use it; otherwise use GitHub username as fallback
           if [[ -n "$slack_username" ]]; then
@@ -88,19 +91,32 @@ runs:
 
     - name: 📝 Compose prefix message to mention in Slack
       shell: bash
+      env:
+        PR_TITLE:   ${{ github.event.pull_request.title || 'workflow_dispatch' }}
+        REPOSITORY: ${{ github.repository }}
       run: |
         # 営業時間内なら即時通知、時間外なら翌営業日に通知
-        if [ "${{ env.IS_BUSINESS_TIME }}" = "true" ]; then
-          mention="<@${{ env.REQUESTEE }}>"
+        if [ "$IS_BUSINESS_TIME" = "true" ]; then
+          mention="<@$REQUESTEE>"
         else
-          mention="<@tasslab> memo ${{ env.REQUESTEE }}"
+          mention="<@tasslab> memo $REQUESTEE"
         fi
         echo "SLACK_POST_MENTION=$mention" >> $GITHUB_ENV
-        echo "ACTIONS_URL=https://github.com/${{ github.repository }}/actions" >> $GITHUB_ENV
+        echo "ACTIONS_URL=https://github.com/$REPOSITORY/actions" >> $GITHUB_ENV
         # The ACTIONS_URL can be reffered when triggered by workflow dispatch.
 
+        # PR のタイトルは PR を作った人が自由に書ける（fork の PR も含む）。Slack は本文の
+        # <!channel> や <@ID> をメンションとして解釈するので、& < > を Slack の決まりどおりに
+        # 置き換えて、ただの文字として出す（https://docs.slack.dev/messaging/formatting-message-text/）
+        # （bash 5.2 からは ${var//pat/rep} の rep の & が「一致した文字」になるので、sed で置き換える）
+        # 改行は空白にして 1 行で書く（改行が残ると $GITHUB_ENV に別の変数を書き込めて、
+        # payload の text: | のインデントも崩れる）
+        title=$(printf '%s' "$PR_TITLE" | tr '\r\n' '  ' | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
+        echo "SLACK_PR_TITLE=$title" >> $GITHUB_ENV
+
     - name: 🔔 Review Request Notify
-      uses: slackapi/slack-github-action@v4.0.0
+      # Slack のトークンを渡す第三者の action なので、tag ではなく SHA で固定する（tag は後から付け替えられる）
+      uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
       # cf. https://github.com/slackapi/slack-github-action
       id: slack
       with:
@@ -114,4 +130,4 @@ runs:
           channel: ${{ inputs.channel-id }}
           text: |
             ${{ env.SLACK_POST_MENTION }} :${{ env.REQUESTOR }}: ${{ env.REQUESTOR }} さんからレビュー依頼が来てるよ (◍˃̶ᗜ˂̶◍)ﾉ
-            > :github: <${{ github.event.pull_request.html_url || github.event.head_commit.url || env.ACTIONS_URL }}|`${{ github.repository }}#${{ github.event.number || 'workflow_dispatch' }}`> - *<${{ github.event.pull_request.html_url || github.event.head_commit.url || env.ACTIONS_URL }}|${{ github.event.pull_request.title || 'workflow_dispatch' }}>*
+            > :github: <${{ github.event.pull_request.html_url || github.event.head_commit.url || env.ACTIONS_URL }}|`${{ github.repository }}#${{ github.event.number || 'workflow_dispatch' }}`> - *<${{ github.event.pull_request.html_url || github.event.head_commit.url || env.ACTIONS_URL }}|${{ env.SLACK_PR_TITLE }}>*

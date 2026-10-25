@@ -5,17 +5,21 @@ on:
     branches:
       - "*"
 
+# 読むだけで足りる（Slack への投稿は SLACK_BOT_TOKEN で行う）
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
-    
+
       - name: ☑️ Checkout code
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
-  
+
       - name: 🔔 Notify Review
         uses: ./
         with:

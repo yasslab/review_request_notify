@@ -1,0 +1,13 @@
+# action.yml と workflow で SHA に固定した action を、Dependabot が上げる
+# （composite action は lockfile を配れないので、中で使う action は提供する側で上げ続ける）
+# cooldown: 公開から 7 日経った版だけを提案する（乗っ取られた版を、取り下げられる前に入れない）
+version: 2
+updates:
+- package-ecosystem: github-actions
+  directory: "/"
+  schedule:
+    interval: weekly
+    time: "20:00"
+  cooldown:
+    default-days: 7
+  open-pull-requests-limit: 10
